@@ -1,0 +1,70 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string yourNamespace = "ProjectName",
+       yourClassname = "Classname",
+       yourEncoding = "Encoding.ASCII";
+string[,] typesNamesDefaults = new[,] {
+        { "string", "Item1", "\"Value1\"" },
+        { "double?", "Item2", "Math.PI" },
+        { "bool?", "Item3", "false" },
+};
+int amount = typesNamesDefaults.GetLength(0);
+#>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Micro.Utils;
+
+namespace <#= yourNamespace #> {
+    public class <#= yourClassname #> : Settings {
+        const string
+<# for (int i = 0; i < amount; i++) { #>
+            key<#= typesNamesDefaults[i, 1] #> = "<#= typesNamesDefaults[i, 1] #>"<#= (i < amount - 1 ? ',' : ';') #>
+<# } #>
+
+<#
+for (int i = 0; i < amount; i++) {
+    string type = typesNamesDefaults[i, 0],
+           name = typesNamesDefaults[i, 1],
+           access = string.Format("base[key{0}]", name);
+    bool isNullable = type.EndsWith("?");
+    string notNullable = !isNullable ? type : type.Substring(0, type.Length - 1);
+    string additional = !isNullable ? "" : string.Format(" == null ? ({0})null : {1}.Parse({2})", type, notNullable, access);
+#>
+        public <#= type + ' ' + name #> {
+            get => <#= access #><#= additional #>;
+            set => <#= access #> = value<#= !isNullable ? "" : " + \"\"" #>;
+        }
+<# } #>
+
+        public <#= yourClassname #>(string path) : base(path, <#= yourEncoding #>) { }
+        public override void LoadDefaults(bool overwrite) {
+            if (!overwrite) {
+<#
+for (int i = 0; i < amount; i++) {
+    string type = typesNamesDefaults[i, 0],
+           name = typesNamesDefaults[i, 1],
+           value = typesNamesDefaults[i, 2];
+#>
+                <#= name #> = <#= name #> ?? <#= value #>;
+<# } #>
+            } else {
+<#
+for (int i = 0; i < amount; i++) {
+    string type = typesNamesDefaults[i, 0],
+           name = typesNamesDefaults[i, 1],
+           value = typesNamesDefaults[i, 2];
+#>
+                <#= name #> = <#= value #>;
+<# } #>
+            }
+        }
+    }
+}
+

@@ -1,0 +1,71 @@
+﻿<#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#
+    (string type, string name)[] types = new[] {
+        ("bool", "Boolean"),
+        ("byte", "Byte"),
+        ("sbyte", "SByte"),
+        ("short", "Int16"),
+        ("ushort", "UInt16"),
+        ("int", "Int32"),
+        ("uint", "UInt32"),
+        ("long", "Int64"),
+        ("ulong", "UInt64"),
+        ("decimal", "Decimal"),
+        ("float", "Single"),
+        ("double", "Double"),
+        ("char", "Char"),
+        ("string", "String"),
+        ("byte[]", "Bytes"),
+        ("char[]", "Chars"),
+    };
+#>
+using System;
+using System.IO;
+
+namespace Micro.IO {
+    public static partial class Core {
+        #region Reading
+<#  foreach (var t in types) {  #>
+        public static Exception TryRead<#=t.name#>(this BinaryReader reader<#=(isArray(t) ? ", in int count" : "")#>, out <#=t.type#> value) {
+            try {
+                value = reader.Read<#=t.name#>(<#=(isArray(t) ? "count" : "")#>);
+            } catch (Exception ex) {
+                value = default;
+                return ex;
+            }
+            return null;
+        }
+<#  }  #>
+        #endregion
+
+        #region Writing
+<#  foreach (var t in types) {  #>
+        public static Exception TryWrite(this BinaryWriter writer, <#=isArray(t) ? "" : "in"#> <#=t.type#> value) {
+            try {
+                writer.Write(value);
+            } catch (Exception ex) {
+                return ex;
+            }
+            return null;
+        }
+<#  }  #>
+<#  foreach (var t in types.Where(tt => isArray(tt))) {  #>
+        public static Exception TryWrite(this BinaryWriter writer, <#=t.type#> value, int index, int count) {
+            try {
+                writer.Write(value, index, count);
+            } catch (Exception ex) {
+                return ex;
+            }
+            return null;
+        }
+<#  }  #>
+        #endregion
+    }
+}
+<#+
+    bool isArray((string t, string) t)
+        => t.t[t.t.Length - 1] == ']';
+#>
